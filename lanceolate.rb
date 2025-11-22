@@ -33,6 +33,27 @@ db.execute "CREATE UNIQUE INDEX IF NOT EXISTS idx_hash ON lanceolate(hash);"
 
 
 
+get '/' do
+    <<-HTML
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title> upload to lanceolate</title>
+  </head>
+  <body>
+    <h2>upload a file</h2>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+      <input type="file" name="file" required>
+      <br><br>
+      <input type="submit" value="Upload">
+    </form>
+  </body>
+  </html>
+  HTML
+  end
+
+
 
 post '/upload' do
 
