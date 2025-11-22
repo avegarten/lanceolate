@@ -18,7 +18,6 @@ FileUtils.mkdir_p ENV['TMPDIR']
 FileUtils.mkdir_p '/home/avery0/Documents/lanceolate/storage'
 # you probably want to change this one too for your own system, but keep the "/storage" where you want your files.
 
-
 db = SQLite3::Database.open("data.db")
 db.execute <<~SQL
   CREATE TABLE IF NOT EXISTS lanceolate(
@@ -31,6 +30,9 @@ db.execute <<~SQL
 SQL
 
 db.execute "CREATE UNIQUE INDEX IF NOT EXISTS idx_hash ON lanceolate(hash);"
+
+
+
 
 post '/upload' do
 
@@ -85,6 +87,7 @@ get '/files/:hash' do
 end
 
 
+
 delete '/files/:shard/:hash' do
 
   sharding = params[:shard]
@@ -115,6 +118,5 @@ delete '/files/:shard/:hash' do
   # remove the leftover hash
 
   "done! deleted: #{deleted_files.join(', ')}"
-
 end
 
