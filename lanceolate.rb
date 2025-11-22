@@ -3,11 +3,19 @@ require 'fileutils'
 require 'digest/blake3'
 require 'sqlite3'
 
- ENV['TMPDIR'] = '/home/averys/Documents/lanceolate/TMPDIR'
+# for when you forget the curl command for to upload stuff, it's <<< curl -X POST -F "file=@/filepath/file.ext" 0.0.0.0:8080/upload >>>
+# for downloads, its  curl -f -J -O http://0.0.0.0:8080/files/HASH >>>
+
+
+#  setup
+set :bind, '0.0.0.0'
+set :port, 8080
+ENV['TMPDIR'] = '/home/avery0/Documents/lanceolate/TMPDIR'
+
  FileUtils.mkdir_p ENV['TMPDIR']
 # use home dir TMPDIR folder instead of /tmp so rack doesn't complain about running out of /tmp
 
-FileUtils.mkdir_p '/home/averys/Documents/lanceolate/storage'
+FileUtils.mkdir_p '/home/avery0/Documents/lanceolate/storage'
 
 db = SQLite3::Database.open("data.db")
 db.execute <<~SQL
@@ -43,16 +51,29 @@ post '/upload' do
   db.execute("INSERT INTO lanceolate (path, hash, uploaded_time, file_size) VALUES (?, ?, ?, ?)",
   [final_path, digest, uploaded_time, file_size])
 
-rescue => e
+  rescue => e
   puts "DB ERROR: #{e.message}"
-end
+
+
+ end
 
   # add to db, rescue for now
 
   "uploaded: #{filename} -> #{final_path}"
 end
 
-get '/download' do
-  # stuff to download files add them later
-  # db.execute
+get '/files/:hash' do
+
+  hash = params[:hash]
+  row = db.execute("SELECT * FROM lanceolate WHERE hash = ?", hash).first
+
+  halt 404  if row.nil? || !File.exist?(row[0]) || File.zero?(row[0])
+
+  path, original_filename = row[0], File.basename(row[0])
+
+  attachment original_filename
+
+  send_file path
+
+
 end
