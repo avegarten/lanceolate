@@ -3,7 +3,8 @@ require 'fileutils'
 require 'digest/blake3'
 require 'sqlite3'
 # for when you forget the curl command for to upload stuff, it's <<< curl -X POST -F "file=@/filepath/file.ext" 0.0.0.0:8080/upload >>>
-# for downloads, its  curl -f -J -O http://0.0.0.0:8080/files/HASH >>>
+# for downloads, its  <<< curl -f -J -O http://0.0.0.0:8080/files/HASH >>>
+# for deleting a file, its <<< curl -X DELELTE http://0.0.0.0:8080/shard/hash >>>
 
 #  INITIAL SETUP
 set :bind, '0.0.0.0'
