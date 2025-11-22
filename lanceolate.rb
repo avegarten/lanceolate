@@ -6,7 +6,6 @@ require 'sqlite3'
 # for when you forget the curl command for to upload stuff, it's <<< curl -X POST -F "file=@/filepath/file.ext" 0.0.0.0:8080/upload >>>
 # for downloads, its  curl -f -J -O http://0.0.0.0:8080/files/HASH >>>
 
-
 #  setup
 set :bind, '0.0.0.0'
 set :port, 8080
@@ -54,7 +53,6 @@ post '/upload' do
   rescue => e
   puts "DB ERROR: #{e.message}"
 
-
  end
 
   # add to db, rescue for now
@@ -74,6 +72,5 @@ get '/files/:hash' do
   attachment original_filename
 
   send_file path
-
 
 end
