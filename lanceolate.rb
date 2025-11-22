@@ -84,3 +84,36 @@ get '/files/:hash' do
 end
 
 
+delete '/files/:shard/:hash' do
+
+  sharding = params[:shard]
+  hash = params[:hash]
+
+  dir = "storage/#{sharding}/#{hash}"
+  rows = db.execute("SELECT * FROM lanceolate WHERE hash = ?", hash)
+  # look for the hash in the db
+  halt 404, "sorry not found. :c" if rows.nil? || rows.empty?
+
+  deleted_files = []
+
+  rows.each do |row|
+    full_path = row[0]
+
+    if File.exist?(full_path)
+      FileUtils.rm_f(full_path)
+      deleted_files << File.basename(full_path)
+    end
+    # checks for file existence and deletes the file
+    db.execute("DELETE FROM lanceolate WHERE hash = ?", hash)
+    # delete from the db
+  end
+
+  if Dir.exist?(dir) && Dir.empty?(dir)
+    FileUtils.rm_rf(dir)
+  end
+  # remove the leftover hash
+
+  "done! deleted: #{deleted_files.join(', ')}"
+
+end
+
