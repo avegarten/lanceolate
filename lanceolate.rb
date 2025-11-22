@@ -2,20 +2,21 @@ require 'sinatra'
 require 'fileutils'
 require 'digest/blake3'
 require 'sqlite3'
-
 # for when you forget the curl command for to upload stuff, it's <<< curl -X POST -F "file=@/filepath/file.ext" 0.0.0.0:8080/upload >>>
 # for downloads, its  curl -f -J -O http://0.0.0.0:8080/files/HASH >>>
 
-
-#  setup
+#  INITIAL SETUP
 set :bind, '0.0.0.0'
 set :port, 8080
 ENV['TMPDIR'] = '/home/avery0/Documents/lanceolate/TMPDIR'
+# you probably want to change this for your own system
 
- FileUtils.mkdir_p ENV['TMPDIR']
+FileUtils.mkdir_p ENV['TMPDIR']
 # use home dir TMPDIR folder instead of /tmp so rack doesn't complain about running out of /tmp
 
 FileUtils.mkdir_p '/home/avery0/Documents/lanceolate/storage'
+# you probably want to change this one too for your own system, but keep the "/storage" where you want your files.
+
 
 db = SQLite3::Database.open("data.db")
 db.execute <<~SQL
@@ -28,52 +29,63 @@ db.execute <<~SQL
   );
 SQL
 
+db.execute "CREATE UNIQUE INDEX IF NOT EXISTS idx_hash ON lanceolate(hash);"
+
+
+
 post '/upload' do
 
-  stat = File.stat(params[:file][:tempfile])
+  tempfile = params[:file][:tempfile]
+  original_name= File.basename(params[:file][:filename])
+  # get the tempfile and original file name
+
+  stat = File.stat(tempfile)
   uploaded_time = stat.mtime.to_i
   file_size = stat.size.to_i
+  # get file metadata
 
-  filename = File.basename(params[:file][:filename])
-
-  FileUtils.mv(params[:file][:tempfile].path, "storage/#{filename}")
-
-  digest = Digest::Blake3.file("storage/#{filename}").hexdigest
+  digest = Digest::Blake3.file(tempfile).hexdigest
   sharding = digest[0,2]
-  # calculate hash from landing space
+  # generate hash and sharding
 
-  FileUtils.mkdir_p "storage/#{sharding}/#{digest}"
-  FileUtils.mv "storage/#{filename}", "storage/#{sharding}/#{digest}"
-  final_path = "storage/#{sharding}/#{digest}/#{filename}"
-  # make hash bashed sharding directory
+  final_dir = "storage/#{sharding}/#{digest}"
+  final_path = "#{final_dir}/#{original_name}"
+  # get the final storage path and combine final_dir and final_path
 
-  begin
-  db.execute("INSERT INTO lanceolate (path, hash, uploaded_time, file_size) VALUES (?, ?, ?, ?)",
-  [final_path, digest, uploaded_time, file_size])
+  FileUtils.mkdir_p final_dir
+  FileUtils.cp tempfile.path, final_path
+  # make final_dir and copy to the final_path
 
-  rescue => e
-  puts "DB ERROR: #{e.message}"
+  db.execute <<-SQL, [final_path, digest, uploaded_time, file_size]
+  INSERT INTO lanceolate (path, hash, uploaded_time, file_size) 
+  VALUES (?, ?, ?, ?)
+  ON CONFLICT(hash) DO NOTHING
+SQL
+  # add to db and avoid duplicate files using the ON CONFLICT(hash)
 
-
- end
-
-  # add to db, rescue for now
-
-  "uploaded: #{filename} -> #{final_path}"
+  "done! uploaded: #{original_name} -> #{final_path} copy it back with this hash: #{digest}"
+  # tells user the file is uploaded and it worked !
 end
+
+
 
 get '/files/:hash' do
-
   hash = params[:hash]
   row = db.execute("SELECT * FROM lanceolate WHERE hash = ?", hash).first
+  # look up the file record from db based on the hash
 
   halt 404  if row.nil? || !File.exist?(row[0]) || File.zero?(row[0])
+  # return with an 404 error is file: 1. doesnt exist in db. 2. doesnt exist at all. 3. or nothing.
 
   path, original_filename = row[0], File.basename(row[0])
-
   attachment original_filename
+  # get file path from the db record and extract the original filename then send the file as an attachment (forces download with original_filename)
 
   send_file path
+  # final send !
 
-
+  "done! downloaded."
 end
+
+
+
