@@ -31,8 +31,6 @@ SQL
 
 db.execute "CREATE UNIQUE INDEX IF NOT EXISTS idx_hash ON lanceolate(hash);"
 
-
-
 post '/upload' do
 
   tempfile = params[:file][:tempfile]
@@ -83,9 +81,6 @@ get '/files/:hash' do
 
   send_file path
   # final send !
-
-  "done! downloaded."
 end
-
 
 
