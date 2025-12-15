@@ -1,7 +1,7 @@
 Lanceolate is a single file local LAN content-addressable file host written in Ruby.
 
 Requires:
-Ruby 3.x
+Ruby 3.x + ruby-devel
 
 Usage:
 
